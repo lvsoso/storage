@@ -1,0 +1,18 @@
+version: '3.1'
+
+services:
+  redis:
+    image: 'bitnami/redis:latest'
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    ports:
+      - "63790:6379"
+
+  mysql:
+    image: mysql:8.0.25
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+    ports:
+      - "33060:3306"
