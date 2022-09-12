@@ -1,0 +1,2 @@
+cleand:
+	@rm -rf ./data/*

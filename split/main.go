@@ -7,18 +7,17 @@ import (
 )
 
 func routes(w http.ResponseWriter, r *http.Request) {
-	url := strings.Split(r.URL.Path, "?")[0]
 	println(r.URL.Path)
-	println(url)
+	println(r.Method)
 	if r.Method == http.MethodGet &&
-		strings.HasPrefix(url, "blobs") &&
-		strings.HasSuffix(url, "info") {
+		strings.HasPrefix(r.URL.Path, "blobs") &&
+		strings.HasSuffix(r.URL.Path, "info") {
 		BlobInfo(w, r)
-	} else if r.Method == http.MethodPost && strings.HasSuffix(url, "blobs") {
-		BlobInit(w, r)
-	} else if r.Method == http.MethodPatch && strings.HasSuffix(url, "blobs") {
+	} else if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "blobs") {
+		BlobNew(w, r)
+	} else if r.Method == http.MethodPatch && strings.Contains(r.URL.Path, "blobs") {
 		BlobUpload(w, r)
-	} else if r.Method == http.MethodPut && strings.HasSuffix(url, "blobs") {
+	} else if r.Method == http.MethodPut && strings.Contains(r.URL.Path, "blobs") {
 		BlobFinish(w, r)
 	}
 }
