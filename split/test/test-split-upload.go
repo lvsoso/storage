@@ -135,11 +135,13 @@ func multipartUpload(filename string, targetURL string, chunkSize int) error {
 func main() {
 	// init upload
 	// file := "/home/lv/Downloads/archlinux-2020.06.01-x86_64.iso"
-	file := "/tmp/3M.file"
-	fileHash := "3ee1a72ceb192638ed08d9df27f525f3239c4f7c6e77c41c504669a87ee3caca"
-	f, err := os.OpenFile(file, os.O_RDONLY, 0755)
+	file := "/tmp/20M.file"
+	f, err := os.OpenFile(file, os.O_RDONLY, 0644)
 	checkError(err)
 	defer f.Close()
+
+	fileHash := common.Sha256(f)
+	f.Seek(0, io.SeekStart)
 
 	fi, err := f.Stat()
 	checkError(err)

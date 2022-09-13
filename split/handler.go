@@ -118,8 +118,37 @@ func BlobUpload(w http.ResponseWriter, r *http.Request) {
 func BlobFinish(w http.ResponseWriter, r *http.Request) {
 	t := strings.Split(r.URL.Path, "/")
 	uploadToken := t[len(t)-1]
-	err := common.RetrieveBlob(uploadToken)
+
+	// merge files
+	mergeFile, mfs, err := common.TempRetrieveBlob(uploadToken)
 	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer func() {
+		os.Remove(mergeFile)
+	}()
+
+	// get metadata
+	metaData, err := common.LoadMeta(uploadToken)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	blob := &Blob{}
+	if err := json.Unmarshal(metaData, blob); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// check hash
+	if mfs != blob.Hash {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

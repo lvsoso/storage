@@ -7,7 +7,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -115,6 +117,63 @@ func SaveMeta(uploadToken string, metaData io.Reader) error {
 	return err
 }
 
-func RetrieveBlob(uploadToken string) error {
-	return nil
+func LoadMeta(uploadToken string) ([]byte, error) {
+	metaDir := filepath.Join(DATA_ROOT, META_DIR, uploadToken, META_FILE)
+	return ioutil.ReadFile(metaDir)
+}
+
+func TempRetrieveBlob(uploadToken string) (mergeFile string, mergeFileSha256 string, err error) {
+	file, err := ioutil.TempFile(os.TempDir(), "merged-*.dat")
+	if err != nil {
+		return
+	}
+	defer func() {
+		if file != nil {
+			file.Close()
+		}
+		if err != nil {
+			os.Remove(file.Name())
+		}
+	}()
+
+	mfs, err := RetrieveBlob(uploadToken, file.Name())
+	if err != nil {
+		return
+	}
+
+	return file.Name(), mfs, err
+}
+
+func RetrieveBlob(uploadToken string, result string) (string, error) {
+	metaDir := filepath.Join(DATA_ROOT, META_DIR, uploadToken)
+	// find
+	files := []string{}
+	if err := filepath.Walk(metaDir,
+		func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if strings.HasPrefix(info.Name(), "ic-") {
+				files = append(files, path)
+			}
+			return nil
+		}); err != nil {
+		return "", err
+	}
+
+	// sort
+	sort.Slice(files, func(i, j int) bool {
+		return files[i] < files[j]
+	})
+
+	// merge
+	mergeFileSha256, err := mergeV1(files, result)
+	fmt.Println(mergeFileSha256)
+	return mergeFileSha256, err
+}
+
+func Sha256(f io.Reader) string {
+	h := sha256.New()
+	io.Copy(h, f)
+	return fmt.Sprintf("%x", h.Sum(nil))
 }
