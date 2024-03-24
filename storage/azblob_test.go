@@ -10,35 +10,43 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getAWSCfg() map[string]string {
-	if os.Getenv("access_key") == "" {
-		return nil
-	}
+func getAzblobCfg() map[string]string {
+	// if os.Getenv("key") == "" {
+	// 	return nil
+	// }
+	// return map[string]string{
+	// 	"account":        os.Getenv("account"),
+	// 	"key": os.Getenv("key"),
+	// 	"endpoint":         os.Getenv("endpoint"),
+	// 	"conatinner":            os.Getenv("conatinner"),
+	// 	"connection_string":            os.Getenv("connection_string"),
+	// }
+
 	return map[string]string{
-		"access_key":        os.Getenv("access_key"),
-		"secret_access_key": os.Getenv("secret_key"),
-		"token":             os.Getenv("token"),
-		"endpoint":          os.Getenv("endpoint"),
-		"bucket":            os.Getenv("bucket"),
+		"account":           "devstoreaccount1",
+		"key":               "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==",
+		"endpoint":          "http://127.0.0.1:10000",
+		"conatinner":        "local-test1",
+		"connection_string": "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;",
 	}
 }
 
-func TestAWSPipeline(t *testing.T) {
-	cfg := getAWSCfg()
+func TestAzblobPipeline(t *testing.T) {
+	cfg := getAzblobCfg()
 	if cfg == nil {
 		t.Skip("skip test because empty env variable")
 	}
 
 	ctx := context.Background()
-	st1, err := newAWS(cfg)
+	st1, err := newAzblob(cfg)
 	assert.Nil(t, err)
 
-	st2, err := newAWS(cfg)
+	st2, err := newAzblob(cfg)
 	assert.Nil(t, err)
 
 	name := RandomString(6)
-	p1 := "/" + st1.cfg.Bucket + "/123/456/" + name
-	p2 := "/" + st1.cfg.Bucket + "/456/123/" + name
+	p1 := "/" + st1.cfg.Container + "/123/456/" + name
+	p2 := "/" + st1.cfg.Container + "/456/123/" + name
 
 	// PUT
 	s := "abcdfsgrgrtytrytryhgdfhfghghgfh"
@@ -91,8 +99,8 @@ func TestAWSPipeline(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestAWSLargeFile(t *testing.T) {
-	size := int64(70 * 1024 * 1024)
+func TestAzblobLargeFile(t *testing.T) {
+	size := int64(2 * 1024 * 1024 * 1024)
 	fileName, err := GenFile(size)
 	assert.Nil(t, err)
 	defer func() {
@@ -102,23 +110,23 @@ func TestAWSLargeFile(t *testing.T) {
 	file, err := os.Open(fileName)
 	assert.Nil(t, err)
 
-	cfg := getAWSCfg()
+	cfg := getAzblobCfg()
 	if cfg == nil {
 		t.Skip("skip test because empty env variable")
 	}
 
 	ctx := context.Background()
-	st1, err := newAWS(cfg)
+	st1, err := newAzblob(cfg)
 	assert.Nil(t, err)
 
-	st2, err := newAWS(cfg)
+	st2, err := newAzblob(cfg)
 	assert.Nil(t, err)
 
 	name := RandomString(6)
-	p1 := "/" + st1.cfg.Bucket + "/123/456/" + name
-	p2 := "/" + st1.cfg.Bucket + "/456/123/" + name
+	p1 := "/" + st1.cfg.Container + "/123/456/" + name
+	p2 := "/" + st1.cfg.Container + "/456/123/" + name
 
-	n, err := st1.putMultipart(ctx, p1, file, size)
+	n, err := st1.Put(ctx, p1, file, size)
 	assert.Nil(t, err)
 	assert.Equal(t, n, size)
 
@@ -130,7 +138,7 @@ func TestAWSLargeFile(t *testing.T) {
 	assert.Nil(t, err)
 	defer r.Close()
 
-	n, err = st2.putMultipart(ctx, p2, r, size)
+	n, err = st2.Put(ctx, p2, r, size)
 	assert.Nil(t, err)
 	assert.Equal(t, n, size)
 

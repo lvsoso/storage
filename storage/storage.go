@@ -17,15 +17,15 @@ type Signer interface {
 }
 
 type Storage interface {
-	Get(ctx context.Context, path string,  opt ...Opt) (io.ReadCloser, error)
+	Get(ctx context.Context, path string, opt ...Opt) (io.ReadCloser, error)
 	Put(ctx context.Context, path string, r io.ReadCloser, size int64, opt ...Opt) (int64, error)
 	Delete(ctx context.Context, path string, opt ...Opt) error
 	Exist(ctx context.Context, path string) (bool, error)
 }
 
-func NewStorage(ctx context.Context, st StorageType, cfg interface{}) (Storage, error) {
+func NewStorage(st StorageType, cfg interface{}) (Storage, error) {
 	if st == "aws" {
-		return newAWS(ctx, cfg)
+		return newAWS(cfg)
 	}
 	return nil, nil
 }

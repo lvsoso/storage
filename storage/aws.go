@@ -14,13 +14,13 @@ import (
 )
 
 const (
-	MULTIPART_THRESHOLD_SIZE_BYTES = 50 * 1024 * 1024 // 100MB
+	MULTIPART_THRESHOLD_SIZE_BYTES = 50 * 1024 * 1024 // 50MB
+	MULTIPART_SIZE_BYTES           = 50 * 1024 * 1024 // 50MB
 )
 
 var _ Storage = (*AWS)(nil)
 
 type AWS struct {
-	ctx context.Context
 	cfg AWSConfig
 	svc *s3.Client
 }
@@ -34,7 +34,7 @@ type AWSConfig struct {
 	Region          string
 }
 
-// newAWS  create a storage backend of aws s3.
+// newAWS  creates a storage backend of aws s3.
 //
 // Config:
 //
@@ -46,7 +46,7 @@ type AWSConfig struct {
 //		"internal_endpoint": "https://oss-internal.aws.s3",
 //		"bucket": "abc"
 //	  }
-func newAWS(ctx context.Context, cfg interface{}) (*AWS, error) {
+func newAWS(cfg interface{}) (*AWS, error) {
 	config, ok := cfg.(map[string]string)
 	if !ok {
 		return nil, errInvalidConfig
@@ -75,7 +75,6 @@ func newAWS(ctx context.Context, cfg interface{}) (*AWS, error) {
 	})
 
 	return &AWS{
-		ctx: ctx,
 		cfg: awsCfg,
 		svc: svc,
 	}, nil
@@ -89,6 +88,7 @@ func (as *AWS) Get(ctx context.Context, path string, opt ...Opt) (io.ReadCloser,
 	}
 	resp, err := as.svc.GetObject(ctx, params)
 	if err != nil {
+		defer resp.Body.Close()
 		return nil, err
 	}
 	return resp.Body, nil
@@ -116,9 +116,8 @@ func (as *AWS) Put(ctx context.Context, path string, r io.ReadCloser, size int64
 
 func (as *AWS) putMultipart(ctx context.Context, path string, r io.ReadCloser, size int64, opt ...Opt) (int64, error) {
 	key := as.getKeyPath(path)
-	var partMiBs int64 = 10
 	uploader := manager.NewUploader(as.svc, func(u *manager.Uploader) {
-		u.PartSize = partMiBs * 1024 * 1024
+		u.PartSize = MULTIPART_SIZE_BYTES
 	})
 	_, err := uploader.Upload(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(as.cfg.Bucket),
